@@ -7,7 +7,7 @@ import { LiveCaptions } from "./components/LiveCaptions";
 import { useTranscription } from "./hooks/useTranscription";
 
 function App() {
-  const { isRecording, transcript, isFinal, toggleRecording } =
+  const { isRecording, transcript, isFinal, toggleRecording, error } =
     useTranscription();
 
   return (
@@ -19,6 +19,7 @@ function App() {
           transcript={transcript}
           isRecording={isRecording}
           isFinal={isFinal}
+          error={error}
         />
         <FloatingToolbar
           isRecording={isRecording}

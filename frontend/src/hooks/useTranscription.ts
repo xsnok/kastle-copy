@@ -4,6 +4,7 @@ export function useTranscription() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isFinal, setIsFinal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -46,26 +47,27 @@ export function useTranscription() {
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
 
-      // Connect to our backend proxy
+      // Connect to FastAPI backend
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${protocol}//localhost:3000`);
+      const ws = new WebSocket(`${protocol}//localhost:8000/ws/transcribe`);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log("Connected to transcription server");
         setIsRecording(true);
         setTranscript("");
+        setError(null);
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "transcript") {
-          setTranscript(data.text);
-          setIsFinal(data.isFinal);
-        } else if (data.type === "error") {
-          console.error("Transcription error:", data.message);
-          stopRecording();
-        }
+        setTranscript(data.text);
+        setIsFinal(data.final);
+      };
+
+      ws.onerror = (event) => {
+        console.error("WebSocket error:", event);
+        setError("Connection error");
       };
 
       ws.onclose = () => {
@@ -90,6 +92,7 @@ export function useTranscription() {
       processor.connect(audioContext.destination);
     } catch (err) {
       console.error("Error accessing microphone:", err);
+      setError("Failed to access microphone");
     }
   }, [stopRecording]);
 
@@ -105,6 +108,7 @@ export function useTranscription() {
     isRecording,
     transcript,
     isFinal,
+    error,
     toggleRecording,
   };
 }
